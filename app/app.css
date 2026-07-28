@@ -1,0 +1,32 @@
+.App {
+    /* top, right, bottom, left */
+    padding: 2.5rem 4rem 1rem 4rem;
+}
+
+p {
+    font-size: large;
+    font-family: inter;
+}
+
+.link {
+    font-size: large;
+    font-family: inter;
+    color: black;
+    text-decoration: none;
+}
+
+.topbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 1.5rem;
+}
+
+.navbar {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    justify-content: end;
+    gap: 2rem
+}
