@@ -8,5 +8,7 @@ import {
 
 export default [
   index("routes/home.tsx"),
-  route("/holiday", "routes/holiday/index.tsx")
+  route("/holiday", "routes/holiday/holidayIndex.tsx"),
+  route("/requests", "routes/requests/requestsIndex.tsx"),
+  route("/admin", "routes/admin/adminIndex.tsx"),
 ] satisfies RouteConfig;

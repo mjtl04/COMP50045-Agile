@@ -30,3 +30,9 @@ p {
     justify-content: end;
     gap: 2rem
 }
+
+.nav-logo {
+    font-size: 2rem;
+    color: black;
+    text-decoration: none;
+}

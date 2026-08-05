@@ -1,7 +1,7 @@
 export default function Index() {
     return <>
         <section>
-            <p>index team page</p>
+            <p>index requests page</p>
         </section>
     </>;
 }

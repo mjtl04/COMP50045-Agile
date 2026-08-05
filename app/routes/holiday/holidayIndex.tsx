@@ -1,13 +1,13 @@
-import { redirect } from "react-router";
+import { NavLink, redirect } from "react-router";
 
 export async function loader() {
     // let user = await getUser(request);
     let user = null;
 
-    if (!user) {
-        return redirect("/login");
-    }
-    return { userName: user.name };
+    // if (!user) {
+    //     return redirect("/login");
+    // }
+    // return { userName: user.name };
 }
 
 export async function action() { }
@@ -15,6 +15,7 @@ export async function action() { }
 export default function Index() {
     return <>
         <section>
+            <NavLink to="/holiday/create">create</NavLink>
             <p>index holiday page</p>
         </section>
     </>;
