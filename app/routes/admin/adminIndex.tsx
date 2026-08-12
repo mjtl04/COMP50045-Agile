@@ -1,7 +1,7 @@
 export default function Index() {
     return <>
         <section>
-            <p>index admin page</p>
+            <h1>index admin page</h1>
         </section>
     </>;
 }

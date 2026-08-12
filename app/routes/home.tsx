@@ -9,6 +9,6 @@ export function meta({ }: Route.MetaArgs) {
 
 export default function Home() {
   return < >
-    <p>home component</p>
+    <h1>home component</h1>
   </>;
 }

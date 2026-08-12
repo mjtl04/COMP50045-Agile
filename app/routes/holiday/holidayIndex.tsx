@@ -11,10 +11,20 @@ interface LeaveRequest {
 }
 
 export async function loader(): Promise<LeaveRequest[]> {
-  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbXBsb3llZV9pZCI6MSwiZmlyc3RfbmFtZSI6IkFkbWluIiwibGFzdF9uYW1lIjoiQWRtaW4iLCJlbWFpbCI6ImFkbWluLmFkbWluQGVtYWlsLmNvbSIsInJvbGUiOnsiaWQiOjJ9LCJpYXQiOjE3ODYxMDA2MzUsImV4cCI6MTc4NjExMTQzNX0.9MkabVewHhsimX2fDkxpl2yLhE2kaQBlSyUQ4CasC4E';
-  const userId = 2;
+  if (typeof window === "undefined") {
+    return [];
+  }
 
-  const response = await fetch(`http://localhost:8900/api/leave-requests/user/${userId}`, {
+  const employee_id = localStorage.getItem("employee_id");
+  const token = localStorage.getItem("token");
+
+  console.log(token)
+
+  if (typeof token !== 'undefined' && token !== null) {
+    throw redirect("/login");
+  }
+
+  const response = await fetch(`http://localhost:8900/api/leave-requests/user/${employee_id}`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -36,9 +46,11 @@ export default function Index() {
 
   return (
     <section>
-      <NavLink to="/holiday/create">create</NavLink>
-      <p>index holiday page</p>
+      <h1>index holiday page</h1>
 
+      <NavLink to="/holiday/create">create</NavLink>
+
+      <p>Holiday Requests: </p>
       <ul>
         {leaveRequests.map((leave) => (
           <li key={leave.id}>
