@@ -1,13 +1,7 @@
-import { createContext, createCookieSessionStorage } from "react-router";
+import { createContext, createCookieSessionStorage, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
 
 const AUTH_COOKIE_NAME = "__session";
 const API_URL = 'http://localhost:8900'
-
-export interface Employee {
-    email: string;
-    accessToken: string;
-    refreshToken: string;
-}
 
 export interface AuthToken {
     access_token?: string
@@ -27,7 +21,7 @@ export interface JWTPayload {
     [key: string]: unknown;
 }
 
-export const authContext = createContext<Employee | null>(null);
+export const authContext = createContext<User | null>(null);
 export const sessionStorage = createCookieSessionStorage({
     cookie: {
         name: AUTH_COOKIE_NAME,
@@ -117,4 +111,24 @@ export async function getUserFromRequest(request: Request): Promise<{ user: User
         },
         setCookieHeader,
     };
+}
+
+export async function requireAuthMiddleware({ request, context }: LoaderFunctionArgs | ActionFunctionArgs, next?: () => Promise<Response>): Promise<Response | void> {
+    const { user, setCookieHeader } = await getUserFromRequest(request);
+
+    if (!user) {
+        const url = new URL(request.url);
+        const redirectTo = url.pathname + url.search;
+        throw redirect(`/login?redirectTo=${encodeURIComponent(redirectTo)}`);
+    }
+
+    context.set(authContext, user);
+
+    if (next) {
+        const response = await next();
+        if (setCookieHeader && response instanceof Response) {
+            response.headers.append("Set-Cookie", setCookieHeader);
+        }
+        return response;
+    }
 }

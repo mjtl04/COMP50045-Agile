@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import { getUserFromRequest, type User } from "~/utilities/auth";
+import { getUserFromRequest, requireAuthMiddleware, type User } from "~/utilities/auth";
 import { useLoaderData, Link, type LoaderFunctionArgs } from "react-router";
 import { Header } from "~/components/header";
 
@@ -9,6 +9,8 @@ export function meta({ }: Route.MetaArgs) {
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
+
+export const middleware: Route.MiddlewareFunction[] = [requireAuthMiddleware];
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user, setCookieHeader } = await getUserFromRequest(request);

@@ -1,4 +1,8 @@
 import { NavLink, redirect, useLoaderData } from "react-router";
+import type { Route } from "../+types/root";
+import { requireAuthMiddleware } from "~/utilities/auth";
+
+export const middleware: Route.MiddlewareFunction[] = [requireAuthMiddleware];
 
 interface LeaveRequest {
   id: number;

@@ -1,4 +1,4 @@
-import { NavLink } from "react-router";
+import { Form, NavLink } from "react-router";
 import type { User } from "~/utilities/auth";
 
 interface HeaderProps {
@@ -17,7 +17,11 @@ export function Header({ user }: HeaderProps) {
                     <NavLink className="link" to="/admin">admin</NavLink>
                 </div>
 
-                {user ? (<> <p>{user.email} </p> <button>Logout</button> </>) : (<></>)}
+                {user ? (<>
+                    <Form action="/logout" method="post">
+                        <button type="submit"> Log out </button>
+                    </Form>
+                </>) : (<></>)}
             </div>
         </section>
     </>;
