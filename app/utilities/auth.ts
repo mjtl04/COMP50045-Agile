@@ -10,7 +10,21 @@ export interface Employee {
 }
 
 export interface AuthToken {
-    jwt?: string
+    access_token?: string
+    refresh_token?: string
+    expires_at?: number;
+}
+
+export interface User {
+    email: string;
+    accessToken: string;
+}
+
+export interface JWTPayload {
+    sub?: string;
+    email?: string;
+    exp?: number;
+    [key: string]: unknown;
 }
 
 export const authContext = createContext<Employee | null>(null);
@@ -33,15 +47,74 @@ export async function login(email: string, password: string): Promise<AuthToken>
         headers: { "Content-Type": "application/json" }
     });
 
-    const jwt = await response.text();
+    const contentType = response.headers.get("content-type") ?? "";
+
+    const data = contentType.includes("application/json") ? await response.json() : await response.text();
 
     if (!response.ok) {
-        throw new Error(`Login failed (Status: ${response.status})`);
+        const message = typeof data === "string" ? data : (data?.message ?? JSON.stringify(data));
+        throw new Error(`Login failed: ${message}`);
     }
 
     const token: AuthToken = {
-        jwt: jwt
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_at: data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : undefined,
     };
 
-    return token;
+    if (typeof data === "object" && data !== null) {
+        return { access_token: data.jwt };
+    }
+
+    return { access_token: data };
+}
+
+export function parseJwt(token: string): JWTPayload | null {
+    try {
+        const base64Url = token.split(".")[1];
+
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+
+        const jsonPayload = Buffer.from(base64, "base64").toString("utf8");
+        return JSON.parse(jsonPayload);
+    } catch {
+        return null;
+    }
+}
+
+export async function getUserFromRequest(request: Request): Promise<{ user: User | null; setCookieHeader?: string }> {
+    const session = await sessionStorage.getSession(request.headers.get("Cookie"));
+    let token: AuthToken | undefined = session.get("token");
+
+    if (!token || !token.access_token) {
+        return { user: null };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    let setCookieHeader: string | undefined;
+
+    const isExpired = token.expires_at ? token.expires_at <= now + 60 : false;
+
+    if (isExpired && token.refresh_token) {
+        try {
+            // const refreshed = await refreshAccessToken(tokens.refresh_token);
+            // token = refreshed;
+            // session.set("tokens", token);
+            // setCookieHeader = await sessionStorage.commitSession(session);
+        } catch {
+            setCookieHeader = await sessionStorage.destroySession(session);
+            return { user: null, setCookieHeader };
+        }
+    }
+
+    const payload = parseJwt(token.access_token);
+    const email = session.get("email") || payload?.email || "User";
+
+    return {
+        user: {
+            email,
+            accessToken: token.access_token,
+        },
+        setCookieHeader,
+    };
 }

@@ -1,5 +1,7 @@
-import NavBar from "~/components/navbar";
 import type { Route } from "./+types/home";
+import { getUserFromRequest, type User } from "~/utilities/auth";
+import { useLoaderData, Link, type LoaderFunctionArgs } from "react-router";
+import { Header } from "~/components/header";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -8,9 +10,17 @@ export function meta({ }: Route.MetaArgs) {
   ];
 }
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { user, setCookieHeader } = await getUserFromRequest(request);
+
+  return Response.json({ user }, setCookieHeader ? { headers: { "Set-Cookie": setCookieHeader } } : undefined);
+}
+
 export default function Home() {
+  const { user } = useLoaderData<{ user: User | null }>();
+
   return < >
-    <NavBar></NavBar>
+    <Header user={user}></Header>
     <h1>home component</h1>
   </>;
 }

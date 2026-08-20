@@ -1,6 +1,11 @@
 import { NavLink } from "react-router";
+import type { User } from "~/utilities/auth";
 
-export default function NavBar() {
+interface HeaderProps {
+    user?: User | null;
+}
+
+export function Header({ user }: HeaderProps) {
     return <>
         <section>
             <div className="topbar">
@@ -12,7 +17,7 @@ export default function NavBar() {
                     <NavLink className="link" to="/admin">admin</NavLink>
                 </div>
 
-                <button>Logout</button>
+                {user ? (<> <p>{user.email} </p> <button>Logout</button> </>) : (<></>)}
             </div>
         </section>
     </>;

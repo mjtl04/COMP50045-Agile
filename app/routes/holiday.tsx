@@ -1,5 +1,4 @@
 import { NavLink, redirect, useLoaderData } from "react-router";
-import NavBar from "~/components/navbar";
 
 interface LeaveRequest {
   id: number;
