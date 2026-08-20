@@ -1,5 +1,5 @@
 import { Form, NavLink } from "react-router";
-import type { User } from "~/utilities/auth";
+import type { User } from "~/utilities/interfaces/user";
 
 interface HeaderProps {
     user?: User | null;

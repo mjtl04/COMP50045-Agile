@@ -1,27 +1,21 @@
 import { createContext, createCookieSessionStorage, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
+import type { User } from "./interfaces/user";
+import type { AuthResponse } from "./interfaces/authResponse";
 
 const AUTH_COOKIE_NAME = "__session";
-const API_URL = 'http://localhost:8900'
-
-export interface AuthToken {
-    access_token?: string
-    refresh_token?: string
-    expires_at?: number;
-}
-
-export interface User {
-    email: string;
-    accessToken: string;
-}
 
 export interface JWTPayload {
-    sub?: string;
-    email?: string;
-    exp?: number;
-    [key: string]: unknown;
+    jti: string,
+    employee_id: number,
+    first_name: string,
+    last_name: string,
+    email: string,
+    role: { id: number },
+    exp: number
 }
 
 export const authContext = createContext<User | null>(null);
+
 export const sessionStorage = createCookieSessionStorage({
     cookie: {
         name: AUTH_COOKIE_NAME,
@@ -32,36 +26,6 @@ export const sessionStorage = createCookieSessionStorage({
         secure: process.env.NODE_ENV === "production",
     }
 });
-
-export async function login(email: string, password: string): Promise<AuthToken> {
-
-    const response = await fetch(API_URL + "/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-        headers: { "Content-Type": "application/json" }
-    });
-
-    const contentType = response.headers.get("content-type") ?? "";
-
-    const data = contentType.includes("application/json") ? await response.json() : await response.text();
-
-    if (!response.ok) {
-        const message = typeof data === "string" ? data : (data?.message ?? JSON.stringify(data));
-        throw new Error(`Login failed: ${message}`);
-    }
-
-    const token: AuthToken = {
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        expires_at: data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : undefined,
-    };
-
-    if (typeof data === "object" && data !== null) {
-        return { access_token: data.jwt };
-    }
-
-    return { access_token: data };
-}
 
 export function parseJwt(token: string): JWTPayload | null {
     try {
@@ -76,45 +40,66 @@ export function parseJwt(token: string): JWTPayload | null {
     }
 }
 
-export async function getUserFromRequest(request: Request): Promise<{ user: User | null; setCookieHeader?: string }> {
-    const session = await sessionStorage.getSession(request.headers.get("Cookie"));
-    let token: AuthToken | undefined = session.get("token");
+export async function getUserFromRequest(request: Request): Promise<{ user: User | null; cookieHeader?: string }> {
 
-    if (!token || !token.access_token) {
+    let cookieHeader: string | undefined;
+    const session = await sessionStorage.getSession(request.headers.get("Cookie"));
+
+    let access_token = session.get("access_token");
+    let refresh_token = session.get("refresh_token");
+
+    let claims = parseJwt(access_token);
+
+    if (!claims) {
         return { user: null };
     }
 
     const now = Math.floor(Date.now() / 1000);
-    let setCookieHeader: string | undefined;
+    const expired = claims.exp <= now + 60;
 
-    const isExpired = token.expires_at ? token.expires_at <= now + 60 : false;
-
-    if (isExpired && token.refresh_token) {
+    if (expired) {
+        if (!refresh_token) {
+            cookieHeader = await sessionStorage.destroySession(session);
+            return { user: null, cookieHeader };
+        }
         try {
-            // const refreshed = await refreshAccessToken(tokens.refresh_token);
-            // token = refreshed;
-            // session.set("tokens", token);
-            // setCookieHeader = await sessionStorage.commitSession(session);
+            access_token = await refreshAccessToken(refresh_token);
+            claims = parseJwt(access_token);
+            if (!claims) {
+                cookieHeader = await sessionStorage.destroySession(session);
+                return { user: null, cookieHeader };
+            }
+            session.set("access_token", access_token);
+            cookieHeader = await sessionStorage.commitSession(session);
         } catch {
-            setCookieHeader = await sessionStorage.destroySession(session);
-            return { user: null, setCookieHeader };
+            cookieHeader = await sessionStorage.destroySession(session);
+            return { user: null, cookieHeader };
         }
     }
 
-    const payload = parseJwt(token.access_token);
-    const email = session.get("email") || payload?.email || "User";
-
-    return {
-        user: {
-            email,
-            accessToken: token.access_token,
-        },
-        setCookieHeader,
+    const user: User = {
+        id: claims.employee_id,
+        email: claims.email
     };
+
+    return { user, cookieHeader };
+}
+
+export async function refreshAccessToken(refreshToken: string): Promise<string> {
+    const response = await fetch('http://localhost:8900/refresh', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(refreshAccessToken),
+    });
+
+    const authResponse: AuthResponse = await response.json();
+
+    return authResponse.refresh_token;
+
 }
 
 export async function requireAuthMiddleware({ request, context }: LoaderFunctionArgs | ActionFunctionArgs, next?: () => Promise<Response>): Promise<Response | void> {
-    const { user, setCookieHeader } = await getUserFromRequest(request);
+    const { user, cookieHeader } = await getUserFromRequest(request);
 
     if (!user) {
         const url = new URL(request.url);
@@ -126,8 +111,8 @@ export async function requireAuthMiddleware({ request, context }: LoaderFunction
 
     if (next) {
         const response = await next();
-        if (setCookieHeader && response instanceof Response) {
-            response.headers.append("Set-Cookie", setCookieHeader);
+        if (cookieHeader && response instanceof Response) {
+            response.headers.append("Set-Cookie", cookieHeader);
         }
         return response;
     }

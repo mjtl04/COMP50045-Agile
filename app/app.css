@@ -33,7 +33,7 @@ h1 {
     flex-direction: row;
     flex-grow: 1;
     justify-content: center;
-    gap: 2rem
+    gap: 2rem;
 }
 
 .nav-logo {

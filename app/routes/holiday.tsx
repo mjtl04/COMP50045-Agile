@@ -1,44 +1,37 @@
-import { NavLink, redirect, useLoaderData } from "react-router";
+import { NavLink, redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { Route } from "../+types/root";
-import { requireAuthMiddleware } from "~/utilities/auth";
+import { getUserFromRequest, requireAuthMiddleware, } from "~/utilities/auth";
+import { Header } from "~/components/header";
+import { getUserHolidayAPI } from "~/utilities/api";
+import type { LeaveRequest } from "~/utilities/interfaces/leaveRequest";
+import type { User } from "~/utilities/interfaces/user";
 
 export const middleware: Route.MiddlewareFunction[] = [requireAuthMiddleware];
 
-interface LeaveRequest {
-  id: number;
-  employee_id: number;
-  raised_date: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-  comment: string | null;
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { user, cookieHeader } = await getUserFromRequest(request);
+  return Response.json({ user }, cookieHeader ? { headers: { "Set-Cookie": cookieHeader } } : undefined);
 }
 
-// export async function loader(): Promise<LeaveRequest[]> {
+export default function Index() {
+  const { user } = useLoaderData<{ user: User }>();
 
-// }
+  return (
+    <section>
+      <Header user={user}></Header>
+      <h1>index holiday page</h1>
 
-// export async function action() { }
+      <NavLink to="/holiday/create">create</NavLink>
 
-// export default function Index() {
-//   const leaveRequests = useLoaderData<typeof loader>();
-
-//   return (
-//     <section>
-//       <NavBar></NavBar>
-//       <h1>index holiday page</h1>
-
-//       <NavLink to="/holiday/create">create</NavLink>
-
-//       <p>Holiday Requests: </p>
-//       <ul>
-//         {leaveRequests.map((leave) => (
-//           <li key={leave.id}>
-//             {leave.start_date} to {leave.end_date} — {leave.status}
-//             {leave.comment && ` (${leave.comment})`}
-//           </li>
-//         ))}
-//       </ul>
-//     </section>
-//   );
-// }
+      <p>Holiday Requests: </p>
+      {/* <ul>
+        {holiday.map((leave) => (
+          <li key={leave.id}>
+            {leave.start_date} to {leave.end_date} — {leave.status}
+            {leave.comment && ` (${leave.comment})`}
+          </li>
+        ))}
+      </ul> */}
+    </section>
+  );
+}

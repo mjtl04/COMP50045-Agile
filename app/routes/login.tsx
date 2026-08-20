@@ -1,5 +1,6 @@
 import { Form, redirect, useActionData, type ActionFunctionArgs } from "react-router";
-import { login, sessionStorage } from "~/utilities/auth";
+import { loginAPI } from "~/utilities/api";
+import { parseJwt, sessionStorage } from "~/utilities/auth";
 
 export async function action({ request }: ActionFunctionArgs) {
     const formData = await request.formData();
@@ -12,27 +13,33 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     try {
-        const token = await login(email, password);
+
+        const authResponse = await loginAPI(email, password);
+
+        const claims = parseJwt(authResponse.access_token);
 
         const session = await sessionStorage.getSession(request.headers.get("Cookie"));
-        session.set("token", token);
-        session.set("email", email);
+        session.set("access_token", authResponse.access_token);
+        session.set("refresh_token", authResponse.refresh_token);
+        session.set("user_id", claims?.employee_id);
+        session.set("email", claims?.email);
 
         return redirect(redirectTo.startsWith("/") ? redirectTo : "/", {
             headers: {
-                "Set-Cookie": await sessionStorage.commitSession(session),
+                "Set-Cookie": await sessionStorage.commitSession(session, {
+                    expires: claims?.exp ? new Date(claims.exp * 1000) : undefined,
+                }),
             },
         });
-
-    } catch (error) {
-        return {
-            error: error instanceof Error ? error.message : "Invalid credentials",
-        };
     }
+    catch {
+        return { error: "Invalid email or password" };
+    }
+
 }
 
 export default function Login() {
-    const actionData = useActionData() as { error?: string; token: string } | undefined;
+    const actionData = useActionData() as { error?: string } | undefined;
 
     return <div>
         <p>Login</p>

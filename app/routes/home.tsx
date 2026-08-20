@@ -1,7 +1,8 @@
 import type { Route } from "./+types/home";
-import { getUserFromRequest, requireAuthMiddleware, type User } from "~/utilities/auth";
+import { getUserFromRequest, requireAuthMiddleware } from "~/utilities/auth";
 import { useLoaderData, Link, type LoaderFunctionArgs } from "react-router";
 import { Header } from "~/components/header";
+import type { User } from "~/utilities/interfaces/user";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -13,13 +14,13 @@ export function meta({ }: Route.MetaArgs) {
 export const middleware: Route.MiddlewareFunction[] = [requireAuthMiddleware];
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { user, setCookieHeader } = await getUserFromRequest(request);
+  const { user, cookieHeader } = await getUserFromRequest(request);
 
-  return Response.json({ user }, setCookieHeader ? { headers: { "Set-Cookie": setCookieHeader } } : undefined);
+  return Response.json({ user }, cookieHeader ? { headers: { "Set-Cookie": cookieHeader } } : undefined);
 }
 
 export default function Home() {
-  const { user } = useLoaderData<{ user: User | null }>();
+  const { user } = useLoaderData<{ user: User }>();
 
   return < >
     <Header user={user}></Header>
