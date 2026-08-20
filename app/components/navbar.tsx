@@ -1,7 +1,6 @@
 import { NavLink } from "react-router";
 
 export default function NavBar() {
-    const name = localStorage.getItem("first_name")
     return <>
         <section>
             <div className="topbar">
@@ -13,7 +12,7 @@ export default function NavBar() {
                     <NavLink className="link" to="/admin">admin</NavLink>
                 </div>
 
-                <p>{name}</p>
+                <button>Logout</button>
             </div>
         </section>
     </>;

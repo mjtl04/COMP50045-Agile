@@ -1,18 +1,47 @@
-// import { useState, createContext } from "react"
+import { createContext, createCookieSessionStorage } from "react-router";
 
-// const AuthContext = createContext(null)
+const AUTH_COOKIE_NAME = "__session";
+const API_URL = 'http://localhost:8900'
 
-// export const AuthProvider = () => {
-//     const [user, setUser] = useState(null)
+export interface Employee {
+    email: string;
+    accessToken: string;
+    refreshToken: string;
+}
 
-//     const login = (user) => {
-//         setUser(user)
-//     }
+export interface AuthToken {
+    jwt?: string
+}
 
-//     const logout = () => {
-//         setUser(null)
-//     }
+export const authContext = createContext<Employee | null>(null);
+export const sessionStorage = createCookieSessionStorage({
+    cookie: {
+        name: AUTH_COOKIE_NAME,
+        httpOnly: true,
+        path: "/",
+        sameSite: "strict",
+        secrets: ["jwt"],
+        secure: process.env.NODE_ENV === "production",
+    }
+});
 
-//     return <AuthContext.Provider></AuthContext.Provider>
+export async function login(email: string, password: string): Promise<AuthToken> {
 
-// }
+    const response = await fetch(API_URL + "/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+        headers: { "Content-Type": "application/json" }
+    });
+
+    const jwt = await response.text();
+
+    if (!response.ok) {
+        throw new Error(`Login failed (Status: ${response.status})`);
+    }
+
+    const token: AuthToken = {
+        jwt: jwt
+    };
+
+    return token;
+}
