@@ -1,19 +1,29 @@
 import { NavLink, redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { Route } from "../+types/root";
-import { authContext, requireAuthMiddleware, tokenContext, } from "~/utilities/auth";
+import { authContext, getUserFromRequest, requireAuthMiddleware, tokenContext, } from "~/utilities/auth";
 import { Header } from "~/components/header";
 import type { User } from "~/utilities/interfaces/user";
+import { getUserHolidayAPI } from "~/utilities/api";
+import type { LeaveRequest } from "~/utilities/interfaces/leaveRequest";
 
 export const middleware: Route.MiddlewareFunction[] = [requireAuthMiddleware];
 
-export async function loader({ context }: LoaderFunctionArgs) {
-  const user = context.get(authContext);
-  const token = context.get(tokenContext);
-  return Response.json({ user });
+export async function loader({ request, context }: LoaderFunctionArgs) {
+
+  const { user, token } = await getUserFromRequest(request);
+
+  if (!user || !token) {
+    throw redirect("/login")
+  }
+
+  const data = await getUserHolidayAPI(user.id, token);
+  return Response.json({ user, data });
+
 }
 
+
 export default function Index() {
-  const { user } = useLoaderData<{ user: User }>();
+  const { user, data } = useLoaderData<{ user: User; data: LeaveRequest[] }>();
 
   return (
     <section>
@@ -23,14 +33,14 @@ export default function Index() {
       <NavLink to="/holiday/create">create</NavLink>
 
       <p>Holiday Requests: </p>
-      {/* <ul>
-        {holiday.map((leave) => (
+      {<ul>
+        {data.map((leave) => (
           <li key={leave.id}>
             {leave.start_date} to {leave.end_date} — {leave.status}
             {leave.comment && ` (${leave.comment})`}
           </li>
         ))}
-      </ul> */}
+      </ul>}
     </section>
   );
 }
