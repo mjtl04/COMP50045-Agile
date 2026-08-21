@@ -60,30 +60,18 @@ export async function getUserFromRequest(request: Request): Promise<{ user: User
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const expired = claims.exp <= now + 60;
+  const expired = claims.exp <= now;
 
   if (expired) {
-    if (!refresh_token) {
-      cookieHeader = await sessionStorage.destroySession(session);
-      return { user: null, cookieHeader };
-    }
-    try {
-      const refreshedTokens = await refreshAccessToken(refresh_token);
-      access_token = refreshedTokens.access_token;
-      claims = parseJwt(access_token);
-      if (!claims) {
-        cookieHeader = await sessionStorage.destroySession(session);
-        return { user: null, cookieHeader };
-      }
-      session.set("access_token", access_token);
-      if (refreshedTokens.refresh_token) {
-        session.set("refresh_token", refreshedTokens.refresh_token);
-      }
-      cookieHeader = await sessionStorage.commitSession(session);
-    } catch (error) {
-      cookieHeader = await sessionStorage.destroySession(session);
-      return { user: null, cookieHeader };
-    }
+    const refreshedTokens = await refreshAccessToken(refresh_token);
+    access_token = refreshedTokens.access_token;
+    session.set("access_token", access_token);
+    cookieHeader = await sessionStorage.commitSession(session);
+  }
+
+  claims = parseJwt(access_token);
+  if (!claims) {
+    throw new Error();
   }
 
   const user: User = {
