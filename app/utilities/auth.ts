@@ -1,6 +1,5 @@
 import { createContext, createCookieSessionStorage, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
 import type { User } from "./interfaces/user";
-import type { AuthResponse } from "./interfaces/authResponse";
 
 const AUTH_COOKIE_NAME = "__session";
 
@@ -12,6 +11,11 @@ export interface JWTPayload {
   email: string,
   role: { id: number },
   exp: number
+}
+
+interface RefreshResponse {
+  access_token: string;
+  refresh_token?: string;
 }
 
 export const authContext = createContext<User | null>(null);
@@ -64,13 +68,17 @@ export async function getUserFromRequest(request: Request): Promise<{ user: User
       return { user: null, cookieHeader };
     }
     try {
-      access_token = await refreshAccessToken(refresh_token);
+      const refreshedTokens = await refreshAccessToken(refresh_token);
+      access_token = refreshedTokens.access_token;
       claims = parseJwt(access_token);
       if (!claims) {
         cookieHeader = await sessionStorage.destroySession(session);
         return { user: null, cookieHeader };
       }
       session.set("access_token", access_token);
+      if (refreshedTokens.refresh_token) {
+        session.set("refresh_token", refreshedTokens.refresh_token);
+      }
       cookieHeader = await sessionStorage.commitSession(session);
     } catch (error) {
       cookieHeader = await sessionStorage.destroySession(session);
@@ -86,7 +94,7 @@ export async function getUserFromRequest(request: Request): Promise<{ user: User
   return { user: user, cookieHeader: cookieHeader, token: access_token };
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<string> {
+export async function refreshAccessToken(refreshToken: string): Promise<RefreshResponse> {
   const response = await fetch('http://localhost:8900/refresh', {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -97,9 +105,9 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
     throw new Error(`Refresh failed with status ${response.status}`);
   }
 
-  const authResponse: AuthResponse = await response.json();
+  const authResponse: RefreshResponse = await response.json();
 
-  return authResponse.access_token;
+  return authResponse;
 
 }
 

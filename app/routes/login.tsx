@@ -26,9 +26,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return redirect(redirectTo.startsWith("/") ? redirectTo : "/", {
       headers: {
-        "Set-Cookie": await sessionStorage.commitSession(session, {
-          expires: claims?.exp ? new Date(claims.exp * 1000) : undefined,
-        }),
+        "Set-Cookie": await sessionStorage.commitSession(session),
       },
     });
   }

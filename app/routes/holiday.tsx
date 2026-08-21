@@ -1,6 +1,6 @@
 import { NavLink, redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { Route } from "../+types/root";
-import { authContext, getUserFromRequest, requireAuthMiddleware, tokenContext, } from "~/utilities/auth";
+import { authContext, requireAuthMiddleware, tokenContext } from "~/utilities/auth";
 import { Header } from "~/components/header";
 import type { User } from "~/utilities/interfaces/user";
 import { getUserHolidayAPI } from "~/utilities/api";
@@ -8,9 +8,9 @@ import type { LeaveRequest } from "~/utilities/interfaces/leaveRequest";
 
 export const middleware: Route.MiddlewareFunction[] = [requireAuthMiddleware];
 
-export async function loader({ request, context }: LoaderFunctionArgs) {
-
-  const { user, token } = await getUserFromRequest(request);
+export async function loader({ context }: LoaderFunctionArgs) {
+  const user = context.get(authContext);
+  const token = context.get(tokenContext);
 
   if (!user || !token) {
     throw redirect("/login")
